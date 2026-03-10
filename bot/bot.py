@@ -1,20 +1,22 @@
+import sys
 import os
 import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import Message
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
 
-# Загружаем переменные окружения из .env в корне проекта
+# Добавляем корень проекта в путь для импорта config.py
 root_dir = os.path.join(os.path.dirname(__file__), '..')
-load_dotenv(os.path.join(root_dir, '.env'))
+sys.path.append(root_dir)
+import config
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
-AI_API_KEY = os.getenv("AI_PROVIDER_API_KEY") 
-AI_MODEL_NAME = os.getenv("AI_MODEL_NAME", "google/gemini-2.5-flash")
-
+# Настройки бота берем из config
+TELEGRAM_BOT_TOKEN = config.TELEGRAM_BOT_TOKEN
+AI_API_KEY = config.AI_API_KEY
+AI_MODEL_NAME = config.BOT_MODEL_NAME
+BASE_URL = config.AI_BASE_URL
+PROMPT_FILE = str(config.get_bot_prompt_path())
 
 if not TELEGRAM_BOT_TOKEN:
     raise ValueError("TELEGRAM_BOT_TOKEN не найден в .env файле")
@@ -22,16 +24,10 @@ if not TELEGRAM_BOT_TOKEN:
 if not AI_API_KEY:
     raise ValueError("API ключ AI_PROVIDER_API_KEY не найден в .env файле")
 
-BASE_URL = os.getenv("AI_PROVIDER_BASE_URL", "https://polza.ai/api/v1")
-
-# Устанавливаем пути к файлу с промптом
-PROMPT_FILE = "prompt.txt"
-if not os.path.exists(PROMPT_FILE):
-    # Если локального нет, берем сгенерированный из model-training
-    PROMPT_FILE = os.path.join(root_dir, 'model-training', 'prompt.txt')
-
 def get_system_prompt():
     try:
+        if not os.path.exists(PROMPT_FILE):
+             return "Ты — полезный AI-ассистент."
         with open(PROMPT_FILE, 'r', encoding='utf-8') as f:
             return f.read().strip()
     except Exception as e:
@@ -59,8 +55,8 @@ async def handle_message(message: Message):
 
     # Ограничение на 100 слов
     words = user_text.split()
-    if len(words) > 100:
-        await message.answer(f"⚠️ Текст слишком длинный ({len(words)} слов). Пожалуйста, пришлите текст не более 100 слов.")
+    if len(words) > config.MAX_INPUT_WORDS:
+        await message.answer(f"⚠️ Текст слишком длинный ({len(words)} слов). Пожалуйста, пришлите текст не более {config.MAX_INPUT_WORDS} слов.")
         return
     
     processing_msg = await message.answer("⏳ Анализирую текст...")
@@ -74,7 +70,7 @@ async def handle_message(message: Message):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_text}
             ],
-            temperature=0.7
+            temperature=config.DEFAULT_TEMPERATURE
         )
         answer = response.choices[0].message.content
         
@@ -92,7 +88,7 @@ async def handle_message(message: Message):
         print(f"API Error: {e}")
 
 async def main():
-    print(f"🤖 Бот запущен. Используемый файл промпта: {os.path.relpath(PROMPT_FILE, start=root_dir)}")
+    print(f"🤖 Бот запущен. Используемый файл промпта: {PROMPT_FILE}")
     print("Нажмите Ctrl+C для остановки.")
     await dp.start_polling(bot)
 

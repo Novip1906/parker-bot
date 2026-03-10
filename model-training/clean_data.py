@@ -1,6 +1,12 @@
 import json
 import os
 import re
+import sys
+
+# Добавляем корень проекта в путь для импорта config.py
+root_dir = os.path.join(os.path.dirname(__file__), '..')
+sys.path.append(root_dir)
+import config
 
 def is_valid_text(text):
     text_lower = text.lower()
@@ -12,32 +18,12 @@ def is_valid_text(text):
     # 2. Удаляем если есть явные ссылки
     if re.search(r'https?://\S+|www\.\S+', text):
         return False
-        
-    # 3. Фильтр стоп-слов (реклама, призывы, каналы)
-    stop_keywords = [
-        'подпишитесь', 'подписывайтесь', 'канал', 'ссылке', 
-        'реклама', 'переходите', 'заходите', 'читать далее',
-        'в комментариях', 'подробности', 'инсайд', 'мерч'
-    ]
-    for word in stop_keywords:
-        if word in text_lower:
-            return False
     
-    # 4. Проверка на количество слов (должно быть > 3)
+    # 3. Проверка на количество слов из конфига
     words = text.split()
-    if len(words) <= 3:
+    if len(words) <= config.MIN_WORDS_FOR_CLEANING or len(words) >= config.MAX_WORDS_FOR_CLEANING:
         return False
     
-    # 5. Проверка на наличие эмодзи
-    emoji_pattern = re.compile(
-        "["
-        "\U00010000-\U0010ffff" 
-        "\u2600-\u27BF"         
-        "]+", flags=re.UNICODE
-    )
-    if emoji_pattern.search(text):
-        return False
-        
     return True
 
 def extract_text(text_val):
@@ -54,11 +40,10 @@ def extract_text(text_val):
     return ""
 
 def clean_json():
-    input_file_path = 'raw_data.json'
-    output_json_path = 'cleaned_data.json'
-    output_txt_path = 'cleaned_data.txt'
+    input_file_path = config.RAW_DATA_PATH
+    output_txt_path = config.CLEANED_DATA_PATH
     
-    if not os.path.exists(input_file_path):
+    if not input_file_path.exists():
         print(f"Файл {input_file_path} не найден.")
         return
 
@@ -92,7 +77,7 @@ def clean_json():
             for msg in cleaned_messages:
                 f.write(msg['text'] + '\n')
         
-        print(f"Файлы успешно созданы: {output_json_path} и {output_txt_path}")
+        print(f"Файл успешно создан: {output_txt_path}")
     else:
         print("Структура JSON не совпадает с ожидаемым экспортом Telegram.")
 

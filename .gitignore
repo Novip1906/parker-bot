@@ -4,3 +4,4 @@ __pycache__
 /model-training/data/cleaned_data.txt
 /model-training/prompt.txt
 /model-training/raw_data.json
+GEMINI.md

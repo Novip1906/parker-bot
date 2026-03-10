@@ -1,29 +1,34 @@
+import sys
 import os
 import openai
-from dotenv import load_dotenv
 
-# Загрузка переменных окружения из .env файла
-load_dotenv()
+# Добавляем корень проекта в путь для импорта config.py
+root_dir = os.path.join(os.path.dirname(__file__), '..')
+sys.path.append(root_dir)
+import config
 
-# Настройка API ключа
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-def get_openai_response(prompt):
+def get_openai_response(system_content, user_content):
     try:
-        print("Отправка запроса в OpenAI...")
+        print("Отправка запроса в API...")
         
         client = openai.OpenAI(
-            base_url=os.getenv("AI_PROVIDER_BASE_URL", "https://polza.ai/api/v1"),
-            api_key=os.getenv("AI_PROVIDER_API_KEY"),
+            base_url=config.AI_BASE_URL,
+            api_key=config.AI_API_KEY,
         )
 
-        model_name = os.getenv("MODEL_TRAINING_MODEL_NAME", "google/gemini-2.5-flash")
+        model_name = config.TRAINING_MODEL_NAME
         response = client.chat.completions.create(
             model=model_name,
-            messages=[{
-                "role": "user",
-                "content": prompt
-            }]
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_content
+                },
+                {
+                    "role": "user",
+                    "content": user_content
+                }
+            ]
         )
 
         print("Ответ получен.")
@@ -49,39 +54,39 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
     # 1. Загружаем шаблон промпта
-    meta_prompt_path = os.path.join(script_dir, "data/meta_prompt.txt")
-    if not os.path.exists(meta_prompt_path):
+    meta_prompt_path = config.META_PROMPT_PATH
+    if not meta_prompt_path.exists():
         print(f"Ошибка: Файл {meta_prompt_path} не найден.")
         exit(1)
         
     with open(meta_prompt_path, "r", encoding="utf-8") as f:
         meta_prompt_template = f.read()
 
-    # 2. Загружаем посты (возьмем первые 30 штук для анализа)
-    data_path = os.path.join(script_dir, "data/cleaned_data.txt")
-    if not os.path.exists(data_path):
-        # Попробуем найти в текущей директории, если скрипт запущен из корня
-        data_path = os.path.join(os.getcwd(), "model-training", "data/cleaned_data.txt")
+    # 2. Загружаем посты (возьмем первые N штук для анализа из config)
+    data_path = config.CLEANED_DATA_PATH
+    if not data_path.exists():
+        print(f"Ошибка: Файл {data_path} не найден. Сначала запустите clean_data.py")
+        exit(1)
 
     try:
         with open(data_path, "r", encoding="utf-8") as f:
-            # Читаем все строки и берем первые 30 ненулевых
+            # Читаем все строки и берем первые посты из конфига
             all_posts = [line.strip() for line in f if line.strip()]
-            posts_to_analyze = all_posts[:30]
+            posts_to_analyze = all_posts[:config.TRAINING_POSTS_COUNT]
             # Форматируем их списком для промпта
-            posts_formatted = "\n\n".join([f"Пост {i+1}:\n{post}" for i, post in enumerate(posts_to_analyze)])
+            posts_formatted = "\n\n".join([post for post in posts_to_analyze])
     except Exception as e:
         print(f"Ошибка при чтении данных: {e}")
         exit(1)
 
     # 3. Формируем финальный запрос
-    user_request = meta_prompt_template.format(posts_chunk=posts_formatted)
+    system_prompt = meta_prompt_template.format(posts_chunk=posts_formatted)
     
-    if user_request:
-        answer = get_openai_response(user_request)
+    if system_prompt:
+        answer = get_openai_response(system_prompt, posts_formatted)
         if answer:
             # Путь к файлу для сохранения результата
-            output_file = os.path.join(script_dir, "prompt.txt")
+            output_file = config.GENERATED_PROMPT_PATH
             save_response_to_txt(answer, output_file)
     else:
         print("Не удалось сформировать запрос.")
