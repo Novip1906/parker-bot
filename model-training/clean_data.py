@@ -8,6 +8,9 @@ root_dir = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(root_dir)
 import config
 
+# Инициализация логирования
+logger = config.setup_logging("clean_data")
+
 def is_valid_text(text):
     text_lower = text.lower()
     
@@ -44,16 +47,20 @@ def clean_json():
     output_txt_path = config.CLEANED_DATA_PATH
     
     if not input_file_path.exists():
-        print(f"Файл {input_file_path} не найден.")
+        logger.error(f"Файл {input_file_path} не найден.")
         return
 
-    print(f"Загрузка {input_file_path}...")
-    with open(input_file_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    logger.info(f"Загрузка {input_file_path}...")
+    try:
+        with open(input_file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    except Exception as e:
+        logger.error(f"Ошибка при загрузке JSON: {e}")
+        return
 
     if isinstance(data, dict) and 'messages' in data:
         messages = data['messages']
-        print(f"Найдено сообщений: {len(messages)}")
+        logger.info(f"Найдено сообщений: {len(messages)}")
         
         cleaned_messages = []
         for msg in messages:
@@ -70,16 +77,18 @@ def clean_json():
                 if is_valid_text(text):
                     cleaned_messages.append({'text': text})
         
-        print(f"Обработано и отфильтровано сообщений: {len(cleaned_messages)}")
+        logger.info(f"Обработано и отфильтровано сообщений: {len(cleaned_messages)}")
             
         # Сохраняем результат в TXT (каждое сообщение с новой строки)
-        with open(output_txt_path, 'w', encoding='utf-8') as f:
-            for msg in cleaned_messages:
-                f.write(msg['text'] + '\n')
-        
-        print(f"Файл успешно создан: {output_txt_path}")
+        try:
+            with open(output_txt_path, 'w', encoding='utf-8') as f:
+                for msg in cleaned_messages:
+                    f.write(msg['text'] + '\n')
+            logger.info(f"Файл успешно создан: {output_txt_path}")
+        except Exception as e:
+            logger.error(f"Ошибка при сохранении файла: {e}")
     else:
-        print("Структура JSON не совпадает с ожидаемым экспортом Telegram.")
+        logger.error("Структура JSON не совпадает с ожидаемым экспортом Telegram.")
 
 if __name__ == "__main__":
     clean_json()

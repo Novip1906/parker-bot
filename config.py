@@ -48,3 +48,16 @@ def get_bot_prompt_path():
     if BOT_PROMPT_LOCAL.exists():
         return BOT_PROMPT_LOCAL
     return GENERATED_PROMPT_PATH
+
+def setup_logging(name):
+    """Настраивает и возвращает логгер."""
+    import logging
+    
+    # Настройка базовой конфигурации, если она еще не была настроена
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    return logging.getLogger(name)
