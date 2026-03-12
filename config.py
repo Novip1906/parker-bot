@@ -2,10 +2,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Базовая директория проекта
 ROOT_DIR = Path(__file__).parent.resolve()
 
-# Загружаем переменные окружения из .env в корне проекта
 load_dotenv(ROOT_DIR / ".env")
 
 # --- API и Ключи ---
@@ -53,7 +51,6 @@ def setup_logging(name):
     """Настраивает и возвращает логгер."""
     import logging
     
-    # Настройка базовой конфигурации, если она еще не была настроена
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

@@ -2,12 +2,10 @@ import sys
 import os
 import openai
 
-# Добавляем корень проекта в путь для импорта config.py
 root_dir = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(root_dir)
 import config
 
-# Инициализация логирования
 logger = config.setup_logging("generate_prompt")
 
 def get_openai_response(system_content, user_content):
@@ -57,7 +55,6 @@ def save_response_to_txt(content, file_path="data/response.txt"):
 if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # 1. Загружаем шаблон промпта
     meta_prompt_path = config.META_PROMPT_PATH
     if not meta_prompt_path.exists():
         logger.error(f"Файл {meta_prompt_path} не найден.")
@@ -70,7 +67,6 @@ if __name__ == "__main__":
         logger.error(f"Ошибка при чтении {meta_prompt_path}: {e}")
         exit(1)
 
-    # 2. Загружаем посты (возьмем первые N штук для анализа из config)
     data_path = config.CLEANED_DATA_PATH
     if not data_path.exists():
         logger.error(f"Файл {data_path} не найден. Сначала запустите clean_data.py")
@@ -78,29 +74,23 @@ if __name__ == "__main__":
 
     try:
         with open(data_path, "r", encoding="utf-8") as f:
-            # Читаем все строки и берем первые посты из конфига
             all_posts = [line.strip() for line in f if line.strip()]
             posts_to_analyze = all_posts[:config.TRAINING_POSTS_COUNT]
             logger.info(f"Загружено {len(posts_to_analyze)} постов для анализа")
-            # Форматируем их списком для промпта
             posts_formatted = "\n\n".join([post for post in posts_to_analyze])
     except Exception as e:
         logger.error(f"Ошибка при чтении данных {data_path}: {e}")
         exit(1)
 
-    # 3. Формируем финальный запрос
     try:
         system_prompt = meta_prompt_template.format(posts_chunk=posts_formatted)
         
         if system_prompt:
             answer = get_openai_response(system_prompt, posts_formatted)
             if answer:
-                # Путь к файлу для сохранения результата
                 output_file = config.GENERATED_PROMPT_PATH
                 save_response_to_txt(answer, output_file)
         else:
             logger.error("Не удалось сформировать запрос (пустой системный промпт).")
     except Exception as e:
         logger.error(f"Ошибка при формировании или отправке запроса: {e}")
-
-

@@ -19,7 +19,7 @@
    ```env
    TELEGRAM_BOT_TOKEN=ваш_токен_от_BotFather
    AI_PROVIDER_API_KEY=ваш_api_ключ_от_провайдера_llm
-   AI_PROVIDER_BASE_URL=https://polza.ai/api/v1 # или другой базовый URL
+   AI_PROVIDER_BASE_URL=https://polza.ai/api/v1 
    
    # Модели
    AI_MODEL_NAME=google/gemini-2.5-flash

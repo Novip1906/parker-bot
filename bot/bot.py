@@ -6,19 +6,16 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from openai import AsyncOpenAI
 
-# Добавляем корень проекта в путь для импорта config.py
 root_dir = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(root_dir)
 import config
 
-# Настройки бота берем из config
 TELEGRAM_BOT_TOKEN = config.TELEGRAM_BOT_TOKEN
 AI_API_KEY = config.AI_API_KEY
 AI_MODEL_NAME = config.BOT_MODEL_NAME
 BASE_URL = config.AI_BASE_URL
 PROMPT_FILE = str(config.get_bot_prompt_path())
 
-# Инициализация логирования
 logger = config.setup_logging("bot")
 
 if not TELEGRAM_BOT_TOKEN:
@@ -56,14 +53,12 @@ async def start_handler(message: Message):
 
 @dp.message()
 async def handle_message(message: Message):
-    # Пытаемся получить текст из обычного сообщения или подписи к медиафайлу
     user_text = message.text or message.caption
     if not user_text:
         return
 
     logger.info(f"Получено сообщение от {message.from_user.id}: {user_text[:50]}...")
 
-    # Ограничение на 100 слов
     words = user_text.split()
     if len(words) > config.MAX_INPUT_WORDS:
         logger.warning(f"Сообщение от {message.from_user.id} слишком длинное ({len(words)} слов)")
@@ -88,7 +83,6 @@ async def handle_message(message: Message):
         usage = response.usage
         logger.info(f"Ответ от AI API получен успешно. Токены: prompt={usage.prompt_tokens}, completion={usage.completion_tokens}, total={usage.total_tokens}")
         
-        # Разбиваем длинные сообщения, если они превышают лимит Telegram (4096 символов)
         if len(answer) > 4000:
             logger.info("Ответ слишком длинный, разбиваем на части")
             parts = [answer[i:i+4000] for i in range(0, len(answer), 4000)]
@@ -106,7 +100,6 @@ async def main():
     logger.info(f"🤖 Бот запущен. Используемый файл промпта: {PROMPT_FILE}")
     logger.info("Нажмите Ctrl+C для остановки.")
     
-    # Удаляем вебхук и пропускаем накопившиеся сообщения
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 

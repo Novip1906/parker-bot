@@ -3,26 +3,21 @@ import os
 import re
 import sys
 
-# Добавляем корень проекта в путь для импорта config.py
 root_dir = os.path.join(os.path.dirname(__file__), '..')
 sys.path.append(root_dir)
 import config
 
-# Инициализация логирования
 logger = config.setup_logging("clean_data")
 
 def is_valid_text(text):
     text_lower = text.lower()
     
-    # 1. Удаляем если есть @ (упоминания)
     if '@' in text:
         return False
     
-    # 2. Удаляем если есть явные ссылки
     if re.search(r'https?://\S+|www\.\S+', text):
         return False
     
-    # 3. Проверка на количество слов из конфига
     words = text.split()
     if len(words) <= config.MIN_WORDS_FOR_CLEANING or len(words) >= config.MAX_WORDS_FOR_CLEANING:
         return False
@@ -65,21 +60,16 @@ def clean_json():
         cleaned_messages = []
         for msg in messages:
             if 'text' in msg:
-                # Извлекаем текст
                 text = extract_text(msg['text'])
                 
-                # ЗАМЕНЯЕМ переносы строк на пробелы (как просили в новом запросе)
                 text = text.replace('\n', ' ')
-                # Убираем лишние пробелы по краям и двойные пробелы
                 text = re.sub(r'\s+', ' ', text).strip()
                 
-                # Фильтруем сообщения по остальным правилам
                 if is_valid_text(text):
                     cleaned_messages.append({'text': text})
         
         logger.info(f"Обработано и отфильтровано сообщений: {len(cleaned_messages)}")
             
-        # Сохраняем результат в TXT (каждое сообщение с новой строки)
         try:
             with open(output_txt_path, 'w', encoding='utf-8') as f:
                 for msg in cleaned_messages:
